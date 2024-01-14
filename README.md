@@ -1,5 +1,5 @@
-# void
-Void Linux related scripts and info
+# void - Void Linux Scripts & Information
+
 
 ## Contents
 

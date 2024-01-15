@@ -10,6 +10,7 @@ INSTALLER="xbps-install -y"
 TRUSTED_USER=""
 
 main() {
+	echo -e "\nVoid Linux Configuration Script\n"
 	# Must be root
 	if [ "$(id -u)" -ne 0 ]; then
 		echo 'ERROR: This script must be run by root, aborting.' >&2
@@ -207,6 +208,11 @@ configuration() {
 		$INSTALLER elogind
 		rm -f /var/service/acpid
 		if ask "Is this a laptop? Y to install and enable $(tlp)" Y; then
+			# power management; TLP may provide better savings on a laptop
+			# being used for browsing and mail. Alterntively upower/power-profiles-daemon
+			# could be beneficial for a machine used for compiling, games or other
+			# higher load activities while on battery power. Don't use both. Using tlp.
+			# See https://linrunner.de/tlp/faq/ppd.html
 			$INSTALLER tlp
 			ln -svf /etc/sv/tlp /var/service
 		fi
@@ -235,10 +241,19 @@ configuration() {
 
 	# XOrg, Wayland, Portals and GNOME
 	if [[ $INSTALL_TYPE = "desktop" ]]; then
-		$INSTALLER xdg-user-dirs xdg-user-dirs-gtk xdg-utils xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome xdg-desktop-portal-wlr
 		# gnome & related
-		$INSTALLER gnome-core gnome-terminal gnome-software gnome-tweaks gdm avahi
+		$INSTALLER xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils \
+			xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome
+		$INSTALLER gnome-core gnome-terminal gnome-software gnome-tweaks gdm gnome-calendar avahi
 		ln -svf /etc/sv/avahi-daemon /var/service
+		$INSTALLER nautilus-gnome-terminal-extension # adds "open terminal" folder action
+		# Fonts on top of the minimum in gnome-core
+		$INSTALLER font-adobe-source-code-pro font-adobe-source-sans-pro-v2 font-adobe-source-serif-pro \
+			dejavu-fonts-ttf fonts-droid-ttf noto-fonts-emoji noto-fonts-ttf
+		# force, really
+		fc-cache -f -r
+
+		# flatpak listings are fed to Gnome Store
 		$INSTALLER flatpak
 		echo "Gnome installed. "
 		if ask "Also add dwm, st, dmenu?" N; then
@@ -269,7 +284,8 @@ configuration() {
 }
 
 quality_of_life() {
-	$INSTALLER neovim htop git wget neofetch
+	$INSTALLER neovim htop git wget rsync chezmoi
+	# TODO add the LazyVim toolset
 	# make vigr visudo etc use nvim
 	echo EDITOR=nvim | tee -a /etc/environment
 }

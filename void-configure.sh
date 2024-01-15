@@ -181,11 +181,8 @@ configuration() {
 
 	# All of our configs will need dbus, polkit
 	# See also: https://docs.voidlinux.org/config/session-management.html
-	$INSTALLER dbus, polkit
+	$INSTALLER dbus polkit
 	ln -svf /etc/sv/dbus /var/service
-	if [[ $INSTALL_TYPE = "desktop" ]]; then
-		$INSTALLER elogind
-	fi
 
 	# logging
 	# https://docs.voidlinux.org/config/services/logging.html

@@ -204,7 +204,7 @@ configuration() {
 	if [[ $INSTALL_TYPE = "desktop" ]]; then
 		$INSTALLER elogind
 		rm -f /var/service/acpid
-		if ask "Is this a laptop? Y to install and enable $(tlp)" Y; then
+		if ask "Is this a laptop? Y to install and enable tlp" Y; then
 			# power management; TLP may provide better savings on a laptop
 			# being used for browsing and mail. Alterntively upower/power-profiles-daemon
 			# could be beneficial for a machine used for compiling, games or other

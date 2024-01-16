@@ -254,6 +254,35 @@ configuration() {
 		# Fonts on top of the minimum in gnome-core
 		$INSTALLER font-adobe-source-code-pro font-adobe-source-sans-pro-v2 font-adobe-source-serif-pro \
 			dejavu-fonts-ttf fonts-droid-ttf noto-fonts-emoji noto-fonts-ttf
+		# I prefer Roboto Mono. Sadly, LazyVim demands a patched Nerd Font
+		ZIPFILE=$(mktemp)
+		wget "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/RobotoMono.zip" -O $ZIPFILE
+		unzip -d /usr/share/fonts/TTF $ZIPFILE
+		rm $ZIPFILE
+		cat <<EOF >/etc/fonts/conf.d/local.conf
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <description>local.conf override for monospace only, adding RobotoMono Nerd Font</description>
+	<alias>
+		<family>monospace</family>
+		<prefer>
+			<family>RobotoMono Nerd Font</family>
+			<family>Noto Sans Mono</family>
+			<family>DejaVu Sans Mono</family>
+			<family>Inconsolata</family>
+			<family>Andale Mono</family>
+			<family>Courier New</family>
+			<family>Cumberland AMT</family>
+			<family>Luxi Mono</family>
+			<family>Nimbus Mono L</family>
+			<family>Nimbus Mono</family>
+			<family>Nimbus Mono PS</family>
+			<family>Courier</family>
+		</prefer>
+	</alias>
+</fontconfig>
+EOF
 		# force, really
 		fc-cache -f -r
 

@@ -157,6 +157,12 @@ setup_users() {
 				echo "Updating $USER"
 				# add any missing standard groups
 				usermod -aG audio,video,cdrom,floppy,optical,kvm,xbuilder $USER
+				# just in case libvirt is installed and got missed
+				getent group libvirt >/dev/null
+				if [ $? -eq 0 ]; then
+					echo Adding $USER to libvirt group
+					usermod -aG libvirt $USER
+				fi
 				if [[ $INSTALL_TYPE = "desktop" ]]; then
 					getent group bluetooth >/dev/null
 					if [ $? -eq 0 ]; then
@@ -276,6 +282,17 @@ configuration() {
 			$INSTALLER bluez
 			ln -svf /etc/sv/bluetoothd /var/service
 		fi
+	fi
+
+	if ask "Install Virtualization (libvirt, qemu, etc)" N; then
+		$INSTALLER libvirt
+		if [[ $INSTALL_TYPE = "desktop" ]]; then
+			$INSTALLER virt-manager virt-manager-tools
+		fi
+		ln -sv /etc/sv/libvirtd /var/service
+		ln -sv /etc/sv/virtlockd /var/service
+		ln -sv /etc/sv/virtlogd /var/service
+		usermod -aG libvirt $TRUSTED_USER
 	fi
 
 }

@@ -317,7 +317,7 @@ EOF
 	if ask "Install Virtualization (libvirt, qemu, etc)" N; then
 		$INSTALLER libvirt
 		if [[ $INSTALL_TYPE = "desktop" ]]; then
-			$INSTALLER virt-manager virt-manager-tools
+			$INSTALLER virt-manager virt-manager-tools qemu
 		fi
 		ln -sv /etc/sv/libvirtd /var/service
 		ln -sv /etc/sv/virtlockd /var/service

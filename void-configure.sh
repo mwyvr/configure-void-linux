@@ -55,7 +55,7 @@ a fresh (or nearly fresh) Void Linux installation. The configuration features:
 - Optional installation & configuration for Bluetooth + Flatpak (per user), 
   Gnome, and a window manager (DWM)
 - Quality of life improvements including: configuring caps lock as control key 
-  for the console; Neovim as EDITOR; git, htop
+  for the console; Neovim as EDITOR; htop
 
 Before proceeding, ensure root and your trusted "wheel" user has a passwd.
 Check the hostname set in /etc/hostname if not already done so.
@@ -72,8 +72,8 @@ initial_update_and_firmware() {
 		xbps-install -y void-repo-nonfree
 		# update everything
 		xbps-install -Suy
-		# xtools is a collection of utils for void and xbps
-		$INSTALLER xtools
+		# xtools is a collection of utils for void and xbps and also includes curl, wget, git
+		$INSTALLER xtools base-devel
 		# firmware
 		CPUTYPE=$(lscpu | grep '^Vendor' | awk '{print $NF}')
 		if [ "$CPUTYPE" = "GenuineIntel" ]; then
@@ -248,7 +248,8 @@ configuration() {
 		$INSTALLER xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils \
 			xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome \
 			wl-clipboard
-		$INSTALLER gnome-core gnome-terminal gnome-software gnome-tweaks gdm gnome-calendar avahi
+		$INSTALLER gnome-core gdm gnome-terminal gnome-software gnome-tweaks \
+			gnome-disk-utility gnome-calculator gnome-calendar avahi
 		ln -svf /etc/sv/avahi-daemon /var/service
 		$INSTALLER nautilus-gnome-terminal-extension # adds "open terminal" folder action
 		# Fonts on top of the minimum in gnome-core
@@ -328,7 +329,7 @@ EOF
 }
 
 quality_of_life() {
-	$INSTALLER neovim htop git wget rsync chezmoi
+	$INSTALLER neovim htop rsync chezmoi
 	# TODO add the LazyVim toolset
 	# make vigr visudo etc use nvim
 	echo EDITOR=nvim | tee -a /etc/environment

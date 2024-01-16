@@ -246,7 +246,8 @@ configuration() {
 	if [[ $INSTALL_TYPE = "desktop" ]]; then
 		# gnome & related
 		$INSTALLER xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils \
-			xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome
+			xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome \
+			wl-clipboard
 		$INSTALLER gnome-core gnome-terminal gnome-software gnome-tweaks gdm gnome-calendar avahi
 		ln -svf /etc/sv/avahi-daemon /var/service
 		$INSTALLER nautilus-gnome-terminal-extension # adds "open terminal" folder action

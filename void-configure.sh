@@ -329,17 +329,13 @@ EOF
 }
 
 quality_of_life() {
-<<<<<<< HEAD
-	$INSTALLER neovim htop git wget rsync chezmoi
+	$INSTALLER htop rsync chezmoi
 	# update alternatives
 	xbps-alternatives -s neovim -g vi
-=======
-	$INSTALLER htop rsync chezmoi
 	# all for neovim
 	$INSTALLER neovim lazygit fd python3-pip tree-sitter
 	# languages
 	$INSTALLER go
->>>>>>> 92b1292be9693058261b1393890e581c89ef52e1
 	# TODO add the LazyVim toolset
 }
 

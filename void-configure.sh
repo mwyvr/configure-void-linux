@@ -55,7 +55,7 @@ a fresh (or nearly fresh) Void Linux installation. The configuration features:
 - Optional installation & configuration for Bluetooth + Flatpak (per user), 
   Gnome, and a window manager (DWM)
 - Quality of life improvements including: configuring caps lock as control key 
-  for the console; Neovim as EDITOR; git, htop
+  for the console; Neovim as EDITOR; htop
 
 Before proceeding, ensure root and your trusted "wheel" user has a passwd.
 Check the hostname set in /etc/hostname if not already done so.
@@ -72,8 +72,8 @@ initial_update_and_firmware() {
 		xbps-install -y void-repo-nonfree
 		# update everything
 		xbps-install -Suy
-		# xtools is a collection of utils for void and xbps
-		$INSTALLER xtools
+		# xtools is a collection of utils for void and xbps and also includes curl, wget, git
+		$INSTALLER xtools base-devel
 		# firmware
 		CPUTYPE=$(lscpu | grep '^Vendor' | awk '{print $NF}')
 		if [ "$CPUTYPE" = "GenuineIntel" ]; then
@@ -157,6 +157,12 @@ setup_users() {
 				echo "Updating $USER"
 				# add any missing standard groups
 				usermod -aG audio,video,cdrom,floppy,optical,kvm,xbuilder $USER
+				# just in case libvirt is installed and got missed
+				getent group libvirt >/dev/null
+				if [ $? -eq 0 ]; then
+					echo Adding $USER to libvirt group
+					usermod -aG libvirt $USER
+				fi
 				if [[ $INSTALL_TYPE = "desktop" ]]; then
 					getent group bluetooth >/dev/null
 					if [ $? -eq 0 ]; then
@@ -242,12 +248,42 @@ configuration() {
 		$INSTALLER xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils \
 			xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome \
 			wl-clipboard
-		$INSTALLER gnome-core gnome-terminal gnome-software gnome-tweaks gdm gnome-calendar avahi
+		$INSTALLER gnome-core gdm gnome-terminal gnome-software gnome-tweaks \
+			gnome-disk-utility gnome-calculator gnome-calendar avahi
 		ln -svf /etc/sv/avahi-daemon /var/service
 		$INSTALLER nautilus-gnome-terminal-extension # adds "open terminal" folder action
 		# Fonts on top of the minimum in gnome-core
 		$INSTALLER font-adobe-source-code-pro font-adobe-source-sans-pro-v2 font-adobe-source-serif-pro \
 			dejavu-fonts-ttf fonts-droid-ttf noto-fonts-emoji noto-fonts-ttf
+		# I prefer Roboto Mono. Sadly, LazyVim demands a patched Nerd Font
+		ZIPFILE=$(mktemp)
+		wget "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/RobotoMono.zip" -O $ZIPFILE
+		unzip -d /usr/share/fonts/TTF $ZIPFILE
+		rm $ZIPFILE
+		cat <<EOF >/etc/fonts/conf.d/local.conf
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <description>local.conf override for monospace only, adding RobotoMono Nerd Font</description>
+	<alias>
+		<family>monospace</family>
+		<prefer>
+			<family>RobotoMono Nerd Font</family>
+			<family>Noto Sans Mono</family>
+			<family>DejaVu Sans Mono</family>
+			<family>Inconsolata</family>
+			<family>Andale Mono</family>
+			<family>Courier New</family>
+			<family>Cumberland AMT</family>
+			<family>Luxi Mono</family>
+			<family>Nimbus Mono L</family>
+			<family>Nimbus Mono</family>
+			<family>Nimbus Mono PS</family>
+			<family>Courier</family>
+		</prefer>
+	</alias>
+</fontconfig>
+EOF
 		# force, really
 		fc-cache -f -r
 
@@ -279,12 +315,31 @@ configuration() {
 		fi
 	fi
 
+	if ask "Install Virtualization (libvirt, qemu, etc)" N; then
+		$INSTALLER libvirt
+		if [[ $INSTALL_TYPE = "desktop" ]]; then
+			$INSTALLER virt-manager virt-manager-tools qemu
+		fi
+		ln -sv /etc/sv/libvirtd /var/service
+		ln -sv /etc/sv/virtlockd /var/service
+		ln -sv /etc/sv/virtlogd /var/service
+		usermod -aG libvirt $TRUSTED_USER
+	fi
+
 }
 
 quality_of_life() {
+<<<<<<< HEAD
 	$INSTALLER neovim htop git wget rsync chezmoi
 	# update alternatives
 	xbps-alternatives -s neovim -g vi
+=======
+	$INSTALLER htop rsync chezmoi
+	# all for neovim
+	$INSTALLER neovim lazygit fd python3-pip tree-sitter
+	# languages
+	$INSTALLER go
+>>>>>>> 92b1292be9693058261b1393890e581c89ef52e1
 	# TODO add the LazyVim toolset
 }
 

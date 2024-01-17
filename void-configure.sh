@@ -283,9 +283,9 @@ configuration() {
 
 quality_of_life() {
 	$INSTALLER neovim htop git wget rsync chezmoi
+	# update alternatives
+	xbps-alternatives -s neovim -g vi
 	# TODO add the LazyVim toolset
-	# make vigr visudo etc use nvim
-	echo EDITOR=nvim | tee -a /etc/environment
 }
 
 finalize_network_and_reboot() {

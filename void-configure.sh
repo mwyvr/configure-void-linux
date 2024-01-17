@@ -329,7 +329,11 @@ EOF
 }
 
 quality_of_life() {
-	$INSTALLER neovim htop rsync chezmoi
+	$INSTALLER htop rsync chezmoi
+	# all for neovim
+	$INSTALLER neovim lazygit fd python3-pip tree-sitter
+	# languages
+	$INSTALLER go
 	# TODO add the LazyVim toolset
 	# make vigr visudo etc use nvim
 	echo EDITOR=nvim | tee -a /etc/environment

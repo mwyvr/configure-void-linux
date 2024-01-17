@@ -172,7 +172,6 @@ setup_users() {
 					getent group _flatpak >/dev/null
 					if [ $? -eq 0 ]; then
 						echo "Installing flatpak software repository for $USER (see gnome-software)"
-						su - $USER -c "flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
 					fi
 				fi
 			else
@@ -226,20 +225,26 @@ configuration() {
 
 	# Graphics
 	if [[ $INSTALL_TYPE = "desktop" ]]; then
-		# common
+		# common to all graphics systems
 		$INSTALLER mesa-dri vulkan-loader
-		GPU=$(lsmod | grep "^video" | cut -c 33-)
-		echo "This installer only installs for Intel or AMD GPUs."
-		echo "If you have NVIDIA, install manually, later."
-		if [ "$GPU" = "i915" ]; then
-			echo "i915 Intel graphics detected"
-			$INSTALLER intel-video-accel mesa-vulkan-intel
-		fi
-
-		if [ "$GPU" = "amdgpu" ]; then
-			echo "amdgpu graphics detected"
-			$INSTALLER mesa-vulkan-radeon xf86-video-amdgpu mesa-vaapi mesa-vdpau
-		fi
+		for GPU in $(lspci | grep VGA | cut -d " " -f 5); do
+			if [ "$GPU" = "Intel" ]; then
+				echo "i915 Intel graphics detected"
+				$INSTALLER intel-video-accel mesa-vulkan-intel xf86-video-intel
+			fi
+			if [ "$GPU" = "AMD" ]; then
+				echo "amdgpu graphics detected"
+				$INSTALLER mesa-vulkan-radeon xf86-video-amdgpu mesa-vaapi mesa-vdpau
+			fi
+			# we assume modern cards not covered by the nouveau driver like my 4060 ti in Jan 2024
+			if [ "$GPU" = "NVIDIA" ]; then
+				echo "nvidia graphics detected"
+				$INSTALLER nvidia
+				cat <<EOF >/etc/modprobe.d/10-nouveau.conf
+blacklist nouveau
+EOF
+			fi
+		done
 	fi
 
 	# XOrg, Wayland, Portals and GNOME
@@ -251,6 +256,10 @@ configuration() {
 		$INSTALLER gnome-core gdm gnome-terminal gnome-software gnome-tweaks \
 			gnome-disk-utility gnome-calculator gnome-calendar avahi
 		ln -svf /etc/sv/avahi-daemon /var/service
+		# flatpak listings are fed to gnome-software
+		$INSTALLER flatpak
+		# system, not user
+		flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 		$INSTALLER nautilus-gnome-terminal-extension # adds "open terminal" folder action
 		# Fonts on top of the minimum in gnome-core
 		$INSTALLER font-adobe-source-code-pro font-adobe-source-sans-pro-v2 font-adobe-source-serif-pro \
@@ -287,11 +296,10 @@ EOF
 		# force, really
 		fc-cache -f -r
 
-		# flatpak listings are fed to Gnome Store
-		$INSTALLER flatpak
 		echo "Gnome installed. "
 		if ask "Also add dwm, st, dmenu?" N; then
-			$INSTALLER dwm st dmenu xorg-minimal xinit
+			# minimal doesn't include evdev (for keyboard, mouse)
+			$INSTALLER dwm st dmenu xorg-minimal xinit xf86-input-evdev
 		fi
 	fi
 

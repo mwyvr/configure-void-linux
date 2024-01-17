@@ -84,6 +84,11 @@ initial_update_and_firmware() {
 			$INSTALLER linux-firmware-amd
 			echo "AMD"
 		fi
+		# in Jan 2024 there remains a bug in this driver that interferes with suspend and reboot
+		# on my i9-14900K based gigabyte z790 machine
+		cat <<EOF >/etc/modprobe.d/10-ath12k.conf
+blacklist ath12k
+EOF
 
 		# KEYBOARD CONFIGURATION - my Varmilo reports as an apple keyboard;
 		# the function keys need this patch to respond correctly otherwise

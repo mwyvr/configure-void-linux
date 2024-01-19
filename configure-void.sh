@@ -300,6 +300,9 @@ EOF
 EOF
 		# force, really
 		fc-cache -f -r
+		# ensure bitmap fonts not available
+		ln -s /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/
+		xbps-reconfigure -f fontconfig
 
 		echo "Gnome installed. "
 		if ask "Also add dwm, st, dmenu?" N; then

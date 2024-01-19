@@ -72,8 +72,8 @@ initial_update_and_firmware() {
 		xbps-install -y void-repo-nonfree
 		# update everything
 		xbps-install -Suy
-		# xtools is a collection of utils for void and xbps and also includes curl, wget, git
-		$INSTALLER xtools base-devel
+		# xtools is a collection of utils for void and xbps and also includes curl, git
+		$INSTALLER xtools base-devel wget
 		# firmware
 		CPUTYPE=$(lscpu | grep '^Vendor' | awk '{print $NF}')
 		if [ "$CPUTYPE" = "GenuineIntel" ]; then
@@ -244,10 +244,12 @@ configuration() {
 			# we assume modern cards not covered by the nouveau driver like my 4060 ti in Jan 2024
 			if [ "$GPU" = "NVIDIA" ]; then
 				echo "nvidia graphics detected"
-				$INSTALLER nvidia
-				cat <<EOF >/etc/modprobe.d/10-nouveau.conf
+				echo "No installation performed for nvidia in case you are doing GPU passthrough to a VM"
+				echo "Blacklisting nouveau as it fails on new cards."
+				cat <<EOF >/usr/lib/modprobe.d/10-nouveau.conf
 blacklist nouveau
 EOF
+				xbps-reconfigure --force linux$(uname -r | cut -c 1-3)
 			fi
 		done
 	fi
@@ -303,8 +305,14 @@ EOF
 
 		echo "Gnome installed. "
 		if ask "Also add dwm, st, dmenu?" N; then
+			# just in case needed/wanted.
 			# minimal doesn't include evdev (for keyboard, mouse)
 			$INSTALLER dwm st dmenu xorg-minimal xinit xf86-input-evdev
+			cat <<EOF >/home/$TRUSTED_USER/.xinitrc
+#!/bin/sh
+# Basic startx script, replace with yours
+exec dwm 
+EOF
 		fi
 	fi
 
@@ -343,10 +351,10 @@ EOF
 
 quality_of_life() {
 	$INSTALLER htop rsync chezmoi
-	# update alternatives
-	xbps-alternatives -s neovim -g vi
 	# all for neovim
 	$INSTALLER neovim lazygit fd python3-pip tree-sitter
+	# update alternatives
+	xbps-alternatives -s neovim -g vi
 	# languages
 	$INSTALLER go
 	# TODO add the LazyVim toolset

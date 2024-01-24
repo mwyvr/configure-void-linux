@@ -305,6 +305,8 @@ EOF
 			# just in case needed/wanted.
 			# minimal doesn't include evdev (for keyboard, mouse)
 			$INSTALLER dwm st dmenu xorg-minimal xinit xf86-input-evdev
+			# dev libs for compiling dwm outside of void-packages
+			$INSTALLER libX11-devel libXft-devel libXinerama-devel
 			cat <<EOF >/home/$TRUSTED_USER/.xinitrc
 #!/bin/sh
 # Basic startx script, replace with yours

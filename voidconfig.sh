@@ -54,8 +54,8 @@ main() {
 		exit
 	fi
 	initial_update
-	configure_hardware
 	configuration
+	# run last as it tests for groups that may be created during package install
 	setup_trusted_user
 }
 

@@ -11,52 +11,107 @@ CPUTYPE=""
 AMDGPU=""
 INTELGPU=""
 NVIDIAGPU=""
-WAYLAND=""
-SYSTEM_TYPE=""
 DO_DESKTOP=""
 DO_LAPTOP=""
 DO_XORG="yes"
+DO_WAYLAND=""
 DO_BLUETOOTH=""
 DO_LIBVIRT=""
-
-ask() {
-	#https://gist.github.com/karancode/f43bc93f9e47f53e71fa29eed638243c#file-ask-sh
-	local prompt default reply
-
-	if [[ ${2:-} = 'Y' ]]; then
-		prompt='Y/n'
-		default='Y'
-	elif [[ ${2:-} = 'N' ]]; then
-		prompt='y/N'
-		default='N'
-	else
-		prompt='y/n'
-		default=''
-	fi
-
-	while true; do
-		echo -n "$1 [$prompt] "
-		read -r reply </dev/tty
-		# Default?
-		if [[ -z $reply ]]; then
-			reply=$default
-		fi
-		case "$reply" in
-		Y* | y*) return 0 ;;
-		N* | n*) return 1 ;;
-		esac
-	done
-}
 
 initial_update() {
 	echo -e "\n# Updating existing system packages #"
 	# update xbps
 	xbps-install -Suy xbps
-	# Enable non-free for Intel and other drivers, and ensure we have wget
+	# Enable non-free for Intel and other drivers, and ensure we have tools for the configuration
 	xbps-install -y void-repo-nonfree wget curl
 }
 
-configure_hardware() {
+configuration() {
+	local packages=""
+	_configure_os
+	_configure_hardware
+
+	# https://docs.voidlinux.org/config/index.html
+	# Firmware already done
+
+	# Cron -https://docs.voidlinux.org/config/cron.html
+	xbps-install -y snooze
+	# TODO - implement fstrim weekly if not on ZFS
+	ln -svf /etc/sv/snooze-weekly /var/service
+
+	# Power Management - https://docs.voidlinux.org/config/power-management.html
+	# all machines will run dbus and elogind
+	rm -f /var/service/acpid
+	xbps-install -y dbus elogind
+	ln -svf /etc/sv/dbus /var/service
+	ln -svf /etc/sv/elogind /var/service
+
+	if [ ! -z "$DO_LAPTOP" ]; then
+		xbps-install -y tlp
+		ln -svf /etc/sv/tlp /var/service
+	fi
+
+	# Network is done last, see below
+	# Seat Management satisfied with dbus and elogind
+	# Graphical Session
+
+	if [ ! -z "$DO_DESKTOP" ]; then
+		# Graphical Session
+		_configure_graphics
+
+		# XOrg, Wayland
+		_install_fonts
+		_install_desktop_support
+
+		# Multimedia
+		xbps-install -uy pipewire
+		mkdir -p /etc/pipewire/pipewire.conf.d
+		ln -svf /usr/share/examples/wireplumber/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/
+		ln -svf /usr/share/examples/pipewire/20-pipewire-pulse.conf /etc/pipewire/pipewire.conf.d/
+		# autostart with Gnome (or add an .xprofile in ~/)
+		mkdir -p /etc/xdg/autostart
+		ln -svf /usr/share/applications/pipewire.desktop /etc/xdg/autostart
+
+		# bluetooth
+		if [ ! -z "$DO_BLUETOOTH" ]; then
+			xbps-install -uy bluez
+			ln -svf /etc/sv/bluetoothd /var/service
+		fi
+
+		_install_applications
+	fi
+
+	# Virtualization
+	if [ ! -z "$DO_LIBVIRT" ]; then
+		xbps-install -y libvirt qemu
+		if [ ! -z "$DO_DESKTOP" ]; then
+			$INSTALLER virt-manager virt-manager-tools qemu
+		fi
+		ln -svf /etc/sv/libvirtd /var/service
+		ln -svf /etc/sv/virtlockd /var/service
+		ln -svf /etc/sv/virtlogd /var/service
+	fi
+
+	# Network - https://docs.voidlinux.org/config/network/index.html
+	# Servers will run dhcpcd, all others NetworkManager
+	# This is left until last as connectivity may be lost
+	if [ ! -z "$DO_DESKTOP" ]; then
+		xbps-install -y NetworkManager
+		ln -svf /etc/sv/NetworkManager /var/service
+		rm -f /var/service/dhcpcd
+	else
+		# advertise hostname to upstream dhcpd service
+		echo "hostname" | tee -a /etc/dhcpcd.conf
+		rm -f /var/service/wpa_supplicant
+	fi
+}
+
+_configure_os() {
+	# make wheel group passwordless for sudo
+	echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' | tee /etc/sudoers.d/wheel
+}
+
+_configure_hardware() {
 	local packages
 
 	# FIRMWARE
@@ -109,91 +164,20 @@ EOF
 	xbps-install -uy
 	packages=""
 }
-
-configuration() {
-	local packages=""
-	# https://docs.voidlinux.org/config/index.html
-	# Firmware already done
-
-	# Cron -https://docs.voidlinux.org/config/cron.html
-	xbps-install -y snooze
-	# TODO - implement fstrim weekly if not on ZFS
-	ln -sv /etc/sv/snooze-weekly /var/service
-
-	# Power Management - https://docs.voidlinux.org/config/power-management.html
-	# all machines will run dbus and elogind
-	rm -f /var/service/acpid
-	xbps-install -y dbus elogind
-	ln -svf /etc/sv/dbus /var/service
-	ln -svf /etc/sv/elogind /var/service
-
-	if [ ! -z "$DO_LAPTOP" ]; then
-		xbps-install -y tlp
-		ln -svf /etc/sv/tlp /var/service
-	fi
-
-	# Network is done last, see below
-	# Seat Management satisfied with dbus and elogind
-	# Graphical Session
-
-	# Graphical Session
-	_configure_graphics
-
-	# XOrg, Wayland
-	_install_fonts
-	_install_desktop_support
-
-	# Multimedia
-	xbps-install -uy pipewire
-	mkdir -p /etc/pipewire/pipewire.conf.d
-	ln -svf /usr/share/examples/wireplumber/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/
-	ln -svf /usr/share/examples/pipewire/20-pipewire-pulse.conf /etc/pipewire/pipewire.conf.d/
-	# autostart with Gnome (or add an .xprofile in ~/)
-	mkdir -p /etc/xdg/autostart
-	ln -svf /usr/share/applications/pipewire.desktop /etc/xdg/autostart
-
-	# bluetooth
-	if [ ! -z "$DO_BLUETOOTH" ]; then
-		xbps-install -uy bluez
-		ln -svf /etc/sv/bluetoothd /var/service
-	fi
-
-	# Virtualization
-	if [ ! -z "$DO_LIBVIRT" ]; then
-		xbps-install -y libvirt qemu
-		if [ ! -z "$DO_DESKTOP" ]; then
-			$INSTALLER virt-manager virt-manager-tools qemu
-		fi
-		ln -sv /etc/sv/libvirtd /var/service
-		ln -sv /etc/sv/virtlockd /var/service
-		ln -sv /etc/sv/virtlogd /var/service
-	fi
-
-	_install_applications
-
-	# Network - https://docs.voidlinux.org/config/network/index.html
-	# Servers will run dhcpcd, all others NetworkManager
-	# This is left until last as connectivity may be lost
-	if [ ! -z "$DO_DESKTOP" ]; then
-		xbps-install -y NetworkManager
-		ln -svf /etc/sv/NetworkManager /var/service
-		rm -f /var/service/dhcpcd
-	else
-		# advertise hostname to upstream dhcpd service
-		echo "hostname" | tee -a /etc/dhcpcd.conf
-		rm -f /var/service/wpa_supplicant
-	fi
-}
-
 _install_desktop_support() {
 	local packages=""
-	packages+=" xorg-minimal xf86-input-evdev libinput xinput dwm st dmenu "
+
+	if [ ! -z "$DO_XORG" ]; then
+		packages+=" xorg-minimal xf86-input-evdev libinput xinput dwm st dmenu "
+	fi
+	if [ ! -z "$DO_WAYLAND" ]; then
+		packages+=" foot wlroots wlroots-devel wayland wayland-devel wayland-protocols \
+	       libinput libinput-devel xorg-server-xwayland meson cairo cairo-devel pango pango-devel fuzzel "
+	fi
 	packages+=" gtk3 xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils \
         xdg-desktop-portal xdg-desktop-portal-gtk "
 
 	# add wayland some other time
-	# PACKAGES+="foot wlroots wlroots-devel wayland wayland-devel wayland-protocols \
-	#        libinput libinput-devel xorg-server-xwayland meson cairo cairo-devel pango pango-devel fuzzel"
 
 	xbps-install -y $packages
 }
@@ -202,7 +186,7 @@ _install_fonts() {
 	local packages=""
 	packages+=" font-adobe-source-code-pro font-adobe-source-sans-pro-v2 font-adobe-source-serif-pro \
 			dejavu-fonts-ttf fonts-droid-ttf noto-fonts-emoji noto-fonts-ttf"
-	# I prefer Roboto Mono. Sadly, LazyVim demands a patched Nerd Font
+	# I prefer Roboto Mono. Pleasant nvim config unfortunately demands a patched Nerd Font
 	ZIPFILE=$(mktemp)
 	wget "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/RobotoMono.zip" -O $ZIPFILE
 	unzip -d /usr/share/fonts/TTF $ZIPFILE
@@ -234,8 +218,9 @@ EOF
 	# force, really
 	fc-cache -f -r
 	# ensure bitmap fonts not available
-	# ln -s /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/
+	ln -svf /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/
 	xbps-reconfigure -f fontconfig
+	xbps-install -y $packages
 }
 
 _install_applications() {
@@ -274,7 +259,7 @@ _configure_graphics() {
 			packages+=" linux-firmware-amd mesa-vulkan-radeon mesa-vaapi mesa-vdpau "
 			if [ ! -z "$DO_XORG" ]; then
 				packages+=" xf86-video-amdgpu "
-				cat <<EOF >/usr/share/X11/xorg.conf.d/10-amdgpu.conf
+				cat <<EOF >/usr/share/X11/xorg.conf.d/99-$HOSTNAME.conf
 # this machine has two cards
 # 01:00.0 VGA compatible controller: NVIDIA Corporation AD106 [GeForce RTX 4060 Ti 16GB] (rev a1)
 # 01:00.1 Audio device: NVIDIA Corporation Device 22bd (rev a1)
@@ -314,24 +299,31 @@ EOF
 	packages=""
 }
 
-# run at the end of installation, adds to groups
-setup_trusted_user() {
-	# be sure
-	getent passwd $TRUSTED_USER >/dev/null
-	if [ $? -eq 0 ]; then
-		echo "Updating $TRUSTED_USER"
-		# add any missing standard groups
-		usermod -aG audio,video,cdrom,floppy,optical,kvm,xbuilder $TRUSTED_USER
-		# just in case libvirt is installed and got missed
-		getent group libvirt >/dev/null
-		if [ $? -eq 0 ]; then
-			echo Adding $TRUSTED_USER to libvirt group
-			usermod -aG libvirt $TRUSTED_USER
-		fi
-		getent group bluetooth >/dev/null
-		if [ $? -eq 0 ]; then
-			echo Adding $TRUSTED_USER to bluetooth group
-			usermod -aG bluetooth $TRUSTED_USER
-		fi
+ask() {
+	#https://gist.github.com/karancode/f43bc93f9e47f53e71fa29eed638243c#file-ask-sh
+	local prompt default reply
+
+	if [[ ${2:-} = 'Y' ]]; then
+		prompt='Y/n'
+		default='Y'
+	elif [[ ${2:-} = 'N' ]]; then
+		prompt='y/N'
+		default='N'
+	else
+		prompt='y/n'
+		default=''
 	fi
+
+	while true; do
+		echo -n "$1 [$prompt] "
+		read -r reply </dev/tty
+		# Default?
+		if [[ -z $reply ]]; then
+			reply=$default
+		fi
+		case "$reply" in
+		Y* | y*) return 0 ;;
+		N* | n*) return 1 ;;
+		esac
+	done
 }

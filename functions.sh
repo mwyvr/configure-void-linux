@@ -325,6 +325,7 @@ setup_trusted_user() {
 		# 	echo "Installing flatpak software repository for $USER (see gnome-software)"
 		# fi
 		usermod -aG $groups $TRUSTED_USER
+		echo "$TRUSTED_USER added to: $groups"
 	fi
 }
 

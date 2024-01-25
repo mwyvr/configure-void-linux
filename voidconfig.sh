@@ -39,14 +39,20 @@ main() {
 		if ask "Is this a laptop (requiring power management and other supports)" N; then
 			DO_LAPTOP="yes"
 		fi
+		if ask "Configure for XOrg support?" Y; then
+			DO_XORG="yes"
+		fi
+		if ask "Configure for Wayland support?" Y; then
+			DO_WAYLAND="yes"
+		fi
 		if ask "Configure for Bluetooth support?" N; then
 			DO_BLUETOOTH="yes"
 		fi
-		if ask "Configure for Virtual Machine support?" N; then
-			DO_LIBVIRT="yes"
-		fi
 	else
 		SYSTEM_TYPE="server"
+	fi
+	if ask "Configure for Virtual Machine support?" N; then
+		DO_LIBVIRT="yes"
 	fi
 
 	if ! ask "Proceed with configuration? " Y; then

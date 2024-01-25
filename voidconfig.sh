@@ -18,7 +18,7 @@ main() {
 		read -p "New hostname: " NEWHOSTNAME
 	fi
 	if [ "$HOSTNAME" != "$NEWHOSTNAME" ]; then
-		echo $NEWHOSTNAME >/etc/hostname
+		echo $NEWHOSTNAME | tee /etc/hostname
 	fi
 
 	while [ -z $TRUSTED_USER ]; do

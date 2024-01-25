@@ -90,14 +90,14 @@ EOF
 		# real time
 		echo 2 >/sys/module/hid_apple/parameters/fnmode
 		# make fix permanent; when initramfs rebuilt
-		echo "options hid_apple fnmode=2" >/etc/modprobe.d/00-keyboardfix.conf
+		echo "options hid_apple fnmode=2" | tee /etc/modprobe.d/00-keyboardfix.conf
 	fi
 
 	# Not strictly 'hardware' but caps lock doesn't deserve to live
 	INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 	cd /usr/share/kbd/keymaps/i386/qwerty
 	gunzip us.map.gz
-	echo "keycode 58 = Control" >>us.map
+	echo "keycode 58 = Control" | tee -a us.map
 	gzip us.map
 	cd $INSTALL_DIR
 
@@ -180,7 +180,7 @@ configuration() {
 		rm -f /var/service/dhcpcd
 	else
 		# advertise hostname to upstream dhcpd service
-		echo "hostname" >>/etc/dhcpcd.conf
+		echo "hostname" | tee -a /etc/dhcpcd.conf
 		rm -f /var/service/wpa_supplicant
 	fi
 }
@@ -319,7 +319,7 @@ setup_trusted_user() {
 	# be sure
 	getent passwd $TRUSTED_USER >/dev/null
 	if [ $? -eq 0 ]; then
-		echo "Updating $USER"
+		echo "Updating $TRUSTED_USER"
 		# add any missing standard groups
 		usermod -aG audio,video,cdrom,floppy,optical,kvm,xbuilder $TRUSTED_USER
 		# just in case libvirt is installed and got missed

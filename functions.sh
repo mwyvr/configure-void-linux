@@ -165,8 +165,6 @@ EOF
 	cd $INSTALL_DIR
 
 	# install and allow reconfiguration of linux if needed
-	# first ensure xbps is current
-	xbps-install -Suy xbps
 	xbps-install -y $packages
 	# finally update everything
 	xbps-install -uy

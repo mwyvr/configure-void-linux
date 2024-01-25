@@ -23,7 +23,7 @@ initial_update() {
 	# update xbps
 	xbps-install -Suy xbps
 	# Enable non-free for Intel and other drivers, and ensure we have tools for the configuration
-	xbps-install -y void-repo-nonfree wget curl
+	xbps-install -y void-repo-nonfree wget curl unzip
 }
 
 configuration() {
@@ -297,6 +297,34 @@ EOF
 	fi
 	xbps-install -y $packages
 	packages=""
+}
+
+setup_trusted_user() {
+	local groups=""
+	echo "# Adding trusted (sudo) user to groups #"
+	getent passwd $TRUSTED_USER >/dev/null
+	if [ $? -eq 0 ]; then
+		# standard Void Linux groups in case was a chroot install
+		groups+=" audio,video,cdrom,floppy,optical,kvm,xbuilder "
+		getent group libvirt >/dev/null
+		if [ $? -eq 0 ]; then
+			groups+=" libvirt "
+		fi
+		getent group bluetooth >/dev/null
+		if [ $? -eq 0 ]; then
+			groups+=" bluetooth "
+		fi
+		# script uses elogind but in case seatd replaces it one day..
+		getent group _seatd >/dev/null
+		if [ $? -eq 0 ]; then
+			groups+=" _seatd "
+		fi
+		# getent group _flatpak >/dev/null
+		# if [ $? -eq 0 ]; then
+		# 	echo "Installing flatpak software repository for $USER (see gnome-software)"
+		# fi
+		usermod -aG $groups $TRUSTED_USER
+	fi
 }
 
 ask() {

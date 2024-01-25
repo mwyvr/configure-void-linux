@@ -57,6 +57,7 @@ main() {
 	configuration
 	# run last as it tests for groups that may be created during package install
 	setup_trusted_user
+	echo -e "\n# Configuration complete #"
 }
 
 usage() {

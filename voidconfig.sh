@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This
+
 . functions.sh
 # set -e
 
@@ -16,19 +18,19 @@ main() {
 	NEWHOSTNAME=""
 	if ! ask "The current hostname is: $HOSTNAME. Keep it?" Y; then
 		read -p "New hostname: " NEWHOSTNAME
-	fi
-	if [ "$HOSTNAME" != "$NEWHOSTNAME" ]; then
-		echo $NEWHOSTNAME | tee /etc/hostname
+		if [ "$HOSTNAME" != "$NEWHOSTNAME" ]; then
+			echo $NEWHOSTNAME | tee /etc/hostname
+		fi
 	fi
 
 	while [ -z $TRUSTED_USER ]; do
-		echo -e "\nProvide the username of your already created user for sudo."
+		echo -e "Enter the username of your already-created user for sudo."
 		read -p "Username: " TRUSTED_USER
 		getent passwd $TRUSTED_USER >/dev/null
 		if [ $? -eq 0 ]; then
 			break
 		else
-			echo "Username not found, try again."
+			echo "Username not found, try again or break out of the script and create one."
 			TRUSTED_USER=""
 		fi
 	done
@@ -39,19 +41,19 @@ main() {
 		if ask "Is this a laptop (requiring power management and other supports)" N; then
 			DO_LAPTOP="yes"
 		fi
-		if ask "Configure for XOrg support?" Y; then
+		if ask "Include XOrg support?" Y; then
 			DO_XORG="yes"
 		fi
-		if ask "Configure for Wayland support?" Y; then
+		if ask "Include Wayland support?" Y; then
 			DO_WAYLAND="yes"
 		fi
-		if ask "Configure for Bluetooth support?" N; then
+		if ask "Include Bluetooth support?" N; then
 			DO_BLUETOOTH="yes"
 		fi
 	else
 		SYSTEM_TYPE="server"
 	fi
-	if ask "Configure for Virtual Machine support?" N; then
+	if ask "Configure for virtual machines/libvirt?" N; then
 		DO_LIBVIRT="yes"
 	fi
 
@@ -60,6 +62,7 @@ main() {
 		exit
 	fi
 	initial_update
+	configure_graphics
 	configuration
 	# run last as it tests for groups that may be created during package install
 	setup_trusted_user

@@ -176,13 +176,13 @@ _install_desktop_support() {
 	local packages=""
 
 	if [ ! -z "$DO_XORG" ]; then
-		packages+=" xorg-minimal xf86-input-evdev libinput xinput dwm st dmenu "
+		packages+=" xorg-minimal xf86-input-evdev libinput xinput xinit dwm st dmenu "
 	fi
 	if [ ! -z "$DO_WAYLAND" ]; then
+		packages+=" foot wlroots wayland wl-clipboard xorg-server-xwayland"
 		# having to build a lot of components from source still
-		packages+=" foot wlroots wlroots-devel wayland wayland-devel wayland-protocols "
-		packages+=" libinput libinput-devel xorg-server-xwayland meson cairo cairo-devel \
-            pango pango-devel  "
+		packages+=" wayland-devel wlroots-devel wayland-protocols "
+		packages+=" libinput libinput-devel meson cairo cairo-devel pango pango-devel  "
 	fi
 	# common to both
 	packages+=" gtk+3 xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils "

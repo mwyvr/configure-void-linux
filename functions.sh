@@ -305,19 +305,19 @@ setup_trusted_user() {
 	getent passwd $TRUSTED_USER >/dev/null
 	if [ $? -eq 0 ]; then
 		# standard Void Linux groups in case was a chroot install
-		groups+=" audio,video,cdrom,floppy,optical,kvm,xbuilder "
+		groups+="audio,video,cdrom,floppy,optical,kvm,xbuilder"
 		getent group libvirt >/dev/null
 		if [ $? -eq 0 ]; then
-			groups+=" libvirt "
+			groups+=",libvirt"
 		fi
 		getent group bluetooth >/dev/null
 		if [ $? -eq 0 ]; then
-			groups+=" bluetooth "
+			groups+=",bluetooth"
 		fi
 		# script uses elogind but in case seatd replaces it one day..
 		getent group _seatd >/dev/null
 		if [ $? -eq 0 ]; then
-			groups+=" _seatd "
+			groups+=",_seatd"
 		fi
 		# getent group _flatpak >/dev/null
 		# if [ $? -eq 0 ]; then

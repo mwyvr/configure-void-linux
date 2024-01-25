@@ -13,7 +13,7 @@ INTELGPU=""
 NVIDIAGPU=""
 DO_DESKTOP=""
 DO_LAPTOP=""
-DO_XORG="yes"
+DO_XORG=""
 DO_WAYLAND=""
 DO_BLUETOOTH=""
 DO_LIBVIRT=""
@@ -85,7 +85,7 @@ configuration() {
 	if [ ! -z "$DO_LIBVIRT" ]; then
 		xbps-install -y libvirt qemu
 		if [ ! -z "$DO_DESKTOP" ]; then
-			$INSTALLER virt-manager virt-manager-tools qemu
+			xbps-install -y virt-manager virt-manager-tools qemu ddcutil
 		fi
 		ln -svf /etc/sv/libvirtd /var/service
 		ln -svf /etc/sv/virtlockd /var/service
@@ -174,6 +174,7 @@ _install_desktop_support() {
 		packages+=" foot wlroots wlroots-devel wayland wayland-devel wayland-protocols \
 	       libinput libinput-devel xorg-server-xwayland meson cairo cairo-devel pango pango-devel fuzzel "
 	fi
+	# common to both
 	packages+=" gtk3 xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils \
         xdg-desktop-portal xdg-desktop-portal-gtk "
 
@@ -227,7 +228,7 @@ _install_applications() {
 	# must haves
 	local packages=""
 	packages+=" firefox Signal-Desktop thunderbird rsync chezmoi neofetch go python3 htop glances "
-	packages+=" git lazygit chezmoi "
+	packages+=" git lazygit chezmoi base-devel"
 	# TODO add the LazyVim toolset
 	# for neovim
 	packages+=" fd python3-pip tree-sitter "

@@ -2,7 +2,7 @@
 # functions for the configuration script(s)
 
 shopt -s nocasematch
-# set -e
+set +e
 
 HOSTNAME=""
 TRUSTED_USER=""
@@ -26,6 +26,8 @@ initial_update() {
 	xbps-install -y void-repo-nonfree wget curl unzip
 }
 
+# functions in this file that start with an underscore i.e. "_configure_os" are
+# called from within configuration()
 configuration() {
 	local packages=""
 	_configure_os
@@ -40,11 +42,12 @@ configuration() {
 	ln -svf /etc/sv/snooze-weekly /var/service
 
 	# Power Management - https://docs.voidlinux.org/config/power-management.html
-	# all machines will run dbus and elogind
+	# all machines will run dbus and elogind; if acpid integration with elogind
+	# is desired, do that post-configure
 	rm -f /var/service/acpid
 	xbps-install -y dbus elogind
 	ln -svf /etc/sv/dbus /var/service
-	ln -svf /etc/sv/elogind /var/service
+	# elogind should not normally be started as a service; let dbus do it.
 
 	if [ ! -z "$DO_LAPTOP" ]; then
 		xbps-install -y tlp
@@ -58,10 +61,9 @@ configuration() {
 	if [ ! -z "$DO_DESKTOP" ]; then
 		# Graphical Session
 		_configure_graphics
-
 		# XOrg, Wayland
-		_install_fonts
 		_install_desktop_support
+		_install_fonts
 
 		# Multimedia
 		xbps-install -uy pipewire
@@ -69,6 +71,7 @@ configuration() {
 		ln -svf /usr/share/examples/wireplumber/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/
 		ln -svf /usr/share/examples/pipewire/20-pipewire-pulse.conf /etc/pipewire/pipewire.conf.d/
 		# autostart with Gnome (or add an .xprofile in ~/)
+		# window managers will need to do this in their startup scripts.
 		mkdir -p /etc/xdg/autostart
 		ln -svf /usr/share/applications/pipewire.desktop /etc/xdg/autostart
 
@@ -85,6 +88,7 @@ configuration() {
 	if [ ! -z "$DO_LIBVIRT" ]; then
 		xbps-install -y libvirt qemu
 		if [ ! -z "$DO_DESKTOP" ]; then
+			# insall gui tools
 			xbps-install -y virt-manager virt-manager-tools qemu ddcutil
 		fi
 		ln -svf /etc/sv/libvirtd /var/service
@@ -94,14 +98,16 @@ configuration() {
 
 	# Network - https://docs.voidlinux.org/config/network/index.html
 	# Servers will run dhcpcd, all others NetworkManager
-	# This is left until last as connectivity may be lost
 	if [ ! -z "$DO_DESKTOP" ]; then
 		xbps-install -y NetworkManager
 		ln -svf /etc/sv/NetworkManager /var/service
 		rm -f /var/service/dhcpcd
 	else
 		# advertise hostname to upstream dhcpd service
-		echo "hostname" | tee -a /etc/dhcpcd.conf
+		if ! grep -Fxq "hostname" /etc/dhcpcd.conf; then
+			echo "hostname" | tee -a /etc/dhcpcd.conf
+		fi
+		# server doesn't need wifi
 		rm -f /var/service/wpa_supplicant
 	fi
 }
@@ -109,10 +115,12 @@ configuration() {
 _configure_os() {
 	# make wheel group passwordless for sudo
 	echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' | tee /etc/sudoers.d/wheel
+	# void doesn't generate a machine-id
+	hostname | md5sum | cut -d ' ' -f 1 | tee /etc/machine-id
 }
 
 _configure_hardware() {
-	local packages
+	local packages=""
 
 	# FIRMWARE
 	# https://docs.voidlinux.org/config/firmware.html
@@ -162,8 +170,8 @@ EOF
 	xbps-install -y $packages
 	# finally update everything
 	xbps-install -uy
-	packages=""
 }
+
 _install_desktop_support() {
 	local packages=""
 
@@ -171,14 +179,19 @@ _install_desktop_support() {
 		packages+=" xorg-minimal xf86-input-evdev libinput xinput dwm st dmenu "
 	fi
 	if [ ! -z "$DO_WAYLAND" ]; then
-		packages+=" foot wlroots wlroots-devel wayland wayland-devel wayland-protocols \
-	       libinput libinput-devel xorg-server-xwayland meson cairo cairo-devel pango pango-devel fuzzel "
+		# having to build a lot of components from source still
+		packages+=" foot wlroots wlroots-devel wayland wayland-devel wayland-protocols "
+		packages+=" libinput libinput-devel xorg-server-xwayland meson cairo cairo-devel \
+            pango pango-devel  "
 	fi
 	# common to both
-	packages+=" gtk3 xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils \
-        xdg-desktop-portal xdg-desktop-portal-gtk "
+	packages+=" gtk+3 xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils "
+	packages+=" xdg-desktop-portal xdg-desktop-portal-gtk "
+	# gui things for occasional use
+	packages+=" nautilus gnome-disk-utility evince "
 
-	# add wayland some other time
+	# used by some gui apps, notably Google Chrome warning on startup
+	packages+=" upower "
 
 	xbps-install -y $packages
 }
@@ -186,13 +199,14 @@ _install_desktop_support() {
 _install_fonts() {
 	local packages=""
 	packages+=" font-adobe-source-code-pro font-adobe-source-sans-pro-v2 font-adobe-source-serif-pro \
-			dejavu-fonts-ttf fonts-droid-ttf noto-fonts-emoji noto-fonts-ttf"
-	# I prefer Roboto Mono. Pleasant nvim config unfortunately demands a patched Nerd Font
-	ZIPFILE=$(mktemp)
-	wget "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/RobotoMono.zip" -O $ZIPFILE
-	unzip -d /usr/share/fonts/TTF $ZIPFILE
-	rm $ZIPFILE
-	cat <<EOF >/etc/fonts/conf.d/local.conf
+			dejavu-fonts-ttf fonts-droid-ttf noto-fonts-emoji noto-fonts-ttf "
+	# I prefer Roboto Mono. Current nvim config demands a patched Nerd Font
+	if ! [ -f /usr/share/fonts/TTF/RobotoMonoNerdFont-Regular.ttf ]; then
+		ZIPFILE=$(mktemp)
+		wget "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/RobotoMono.zip" -O $ZIPFILE
+		unzip -d /usr/share/fonts/TTF $ZIPFILE
+		rm $ZIPFILE
+		cat <<EOF >/etc/fonts/conf.d/local.conf
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
 <fontconfig>
@@ -216,8 +230,9 @@ _install_fonts() {
 	</alias>
 </fontconfig>
 EOF
-	# force, really
-	fc-cache -f -r
+		# force, really
+		fc-cache -f -r
+	fi
 	# ensure bitmap fonts not available
 	ln -svf /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/
 	xbps-reconfigure -f fontconfig
@@ -238,11 +253,9 @@ _install_applications() {
 	xbps-install -y $packages
 }
 
-# called from within configuration()
-_configure_graphics() {
+configure_graphics() {
 
-	local packages
-	packages=""
+	local packages=""
 
 	echo -e "\n# Graphics Setup #"
 	echo -e "\nThis script installs graphics drivers to support XOrg and Wayland."
@@ -251,6 +264,7 @@ _configure_graphics() {
 	packages+=" mesa-dri vulkan-loader "
 
 	echo -e "\nDetecting graphics cards:\n"
+
 	AMDGPU="$(lspci | grep -i 'vga.*amd')"
 	INTELGPU="$(lspci | grep -i 'vga.*intel')"
 	NVIDIAGPU="$(lspci | grep -i 'vga.*nvidia')"
@@ -260,19 +274,6 @@ _configure_graphics() {
 			packages+=" linux-firmware-amd mesa-vulkan-radeon mesa-vaapi mesa-vdpau "
 			if [ ! -z "$DO_XORG" ]; then
 				packages+=" xf86-video-amdgpu "
-				cat <<EOF >/usr/share/X11/xorg.conf.d/99-$HOSTNAME.conf
-# this machine has two cards
-# 01:00.0 VGA compatible controller: NVIDIA Corporation AD106 [GeForce RTX 4060 Ti 16GB] (rev a1)
-# 01:00.1 Audio device: NVIDIA Corporation Device 22bd (rev a1)
-# 08:00.0 VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Navi 10 [Radeon RX 5600 OEM/5600 XT / 5700/5700 XT] (rev c1)
-# 08:00.1 Audio device: Advanced Micro Devices, Inc. [AMD/ATI] Navi 10 HDMI Audio
-# 09:00.0 Network controller: Qualcomm Technologies, Inc Device 1107 (rev 01)
-Section "Device"
-	Identifier "GPU0"
-	Driver "modesetting"
-    BusID "PCI:8:0:0"
-EndSection
-EOF
 			fi
 		fi
 	fi
@@ -297,7 +298,6 @@ blacklist nouveau
 EOF
 	fi
 	xbps-install -y $packages
-	packages=""
 }
 
 setup_trusted_user() {

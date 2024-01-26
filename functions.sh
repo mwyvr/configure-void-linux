@@ -23,7 +23,7 @@ initial_update() {
 	# update xbps
 	xbps-install -Suy xbps
 	# Enable non-free for Intel and other drivers, and ensure we have tools for the configuration
-	xbps-install -y void-repo-nonfree wget curl unzip
+	xbps-install -y void-repo-nonfree xtools wget curl unzip
 }
 
 # functions in this file that start with an underscore i.e. "_configure_os" are
@@ -187,7 +187,7 @@ _install_desktop_support() {
 		packages+=" xorg-minimal xf86-input-evdev libinput xinput xinit dwm st dmenu "
 	fi
 	if [ ! -z "$DO_WAYLAND" ]; then
-		packages+=" foot alacritty wlroots wayland wl-clipboard xorg-server-xwayland fuzzel"
+		packages+=" foot alacritty wlroots wayland wl-clipboard wlr-randr xorg-server-xwayland fuzzel"
 		# having to build a lot of components from source still
 		packages+=" wayland-devel wlroots-devel wayland-protocols "
 		packages+=" libinput libinput-devel meson cairo cairo-devel pango pango-devel  "
@@ -216,6 +216,7 @@ _install_fonts() {
 		mkdir -p /usr/share/fonts/TTF/nerdfonts
 		unzip -d /usr/share/fonts/TTF/nerdfonts $ZIPFILE
 		rm $ZIPFILE
+		# higher order # overrides the dejavu files to follow
 		cat <<EOF >/etc/fonts/conf.d/52-$HOSTNAME.conf
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">

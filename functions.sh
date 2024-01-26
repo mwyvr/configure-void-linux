@@ -168,6 +168,8 @@ EOF
 		gunzip "$MAPFILE.gz"
 		echo $FIXMAPS | tee -a $MAPFILE
 		gzip $MAPFILE
+		# in case this was a chroot install
+		echo "KEYMAP=us" | tee -a /etc/rc.conf
 	fi
 
 	# install and allow reconfiguration of linux if needed

@@ -4,6 +4,7 @@
 shopt -s nocasematch
 set +e
 
+INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 HOSTNAME=""
 TRUSTED_USER=""
 
@@ -157,7 +158,6 @@ EOF
 	fi
 
 	# Not strictly 'hardware' but caps lock doesn't deserve to live
-	INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 	cd /usr/share/kbd/keymaps/i386/qwerty
 	gunzip us.map.gz
 	echo "keycode 58 = Control" | tee -a us.map
@@ -166,7 +166,7 @@ EOF
 
 	# install and allow reconfiguration of linux if needed
 	xbps-install -y $packages
-	# finally update everything
+	# finally update everything; likely that initramfs will be regenerated for a newer linux
 	xbps-install -uy
 }
 
@@ -177,7 +177,7 @@ _install_desktop_support() {
 		packages+=" xorg-minimal xf86-input-evdev libinput xinput xinit dwm st dmenu "
 	fi
 	if [ ! -z "$DO_WAYLAND" ]; then
-		packages+=" foot wlroots wayland wl-clipboard xorg-server-xwayland"
+		packages+=" foot alacritty wlroots wayland wl-clipboard xorg-server-xwayland fuzzel"
 		# having to build a lot of components from source still
 		packages+=" wayland-devel wlroots-devel wayland-protocols "
 		packages+=" libinput libinput-devel meson cairo cairo-devel pango pango-devel  "

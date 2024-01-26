@@ -169,8 +169,8 @@ EOF
 		echo "$FIXMAPS" | tee -a $MAPFILE
 		gzip $MAPFILE
 		# in case this was a chroot install
-		if ! grep -e "^KEYMAP=us" /etc/rc.conf; then
-			echo "KEYMAP=us" | tee -a /etc/rc.conf
+		if ! grep -e "^KEYMAP=\"us\"" /etc/rc.conf; then
+			echo "KEYMAP=\"us\"" | tee -a /etc/rc.conf
 		fi
 	fi
 

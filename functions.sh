@@ -244,7 +244,7 @@ _install_applications() {
 	packages+=" git lazygit chezmoi base-devel"
 	# TODO add the LazyVim toolset
 	# for neovim
-	packages+=" fd python3-pip tree-sitter "
+	packages+=" fd ripgrep python3-pip tree-sitter "
 	xbps-install -y neovim
 	# update alternatives
 	xbps-alternatives -s neovim -g vi

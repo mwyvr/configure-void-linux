@@ -210,33 +210,35 @@ _install_fonts() {
 			cantarell-fonts font-crosextra-carlito-ttf dejavu-fonts-ttf fonts-droid-ttf \
             noto-fonts-emoji noto-fonts-ttf ttf-opensans fonts-roboto-ttf xorg-fonts "
 	# I prefer Roboto Mono, which Void doesn't carry. Current nvim config demands a patched Nerd Font
-	if ! [ -f /usr/share/fonts/TTF/RobotoMonoNerdFont-Regular.ttf ]; then
+	if ! [ -f /usr/share/fonts/TTF/nerd-fonts/RobotoMonoNerdFont-Regular.ttf ]; then
 		ZIPFILE=$(mktemp)
 		wget "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/RobotoMono.zip" -O $ZIPFILE
-		unzip -d /usr/share/fonts/TTF $ZIPFILE
+		mkdir -p /usr/share/fonts/TTF/nerdfonts
+		unzip -d /usr/share/fonts/TTF/nerdfonts $ZIPFILE
 		rm $ZIPFILE
-		cat <<EOF >/etc/fonts/conf.d/local.conf
+		cat <<EOF >/etc/fonts/conf.d/52-$HOSTNAME.conf
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
 <fontconfig>
-  <description>local.conf override for monospace only, adding RobotoMono Nerd Font</description>
-	<alias>
-		<family>monospace</family>
-		<prefer>
-			<family>RobotoMono Nerd Font Mono</family>
-			<family>Noto Sans Mono</family>
-			<family>DejaVu Sans Mono</family>
-			<family>Inconsolata</family>
-			<family>Andale Mono</family>
-			<family>Courier New</family>
-			<family>Cumberland AMT</family>
-			<family>Luxi Mono</family>
-			<family>Nimbus Mono L</family>
-			<family>Nimbus Mono</family>
-			<family>Nimbus Mono PS</family>
-			<family>Courier</family>
-		</prefer>
-	</alias>
+  <description>local overrides</description>
+  <!-- Generic name assignment for RobotoMono-->
+  <alias>
+    <family>RobotoMono Nerd Font Mono</family>
+    <default>
+      <family>monospace</family>
+    </default>
+  </alias>
+
+  <!-- monospace name aliasing for fonts we've installed on this machine -->
+  <alias>
+    <family>monospace</family>
+    <prefer>
+      <family>RobotoMono Nerd Font Mono</family>
+      <family>Source Code Pro</family>
+      <family>Noto Sans Mono</family>
+      <family>DejaVu Sans Mono</family>
+    </prefer>
+  </alias>
 </fontconfig>
 EOF
 		# force, really

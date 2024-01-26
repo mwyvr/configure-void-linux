@@ -223,7 +223,7 @@ _install_fonts() {
 	<alias>
 		<family>monospace</family>
 		<prefer>
-			<family>RobotoMono Nerd Font</family>
+			<family>RobotoMono Nerd Font Mono</family>
 			<family>Noto Sans Mono</family>
 			<family>DejaVu Sans Mono</family>
 			<family>Inconsolata</family>

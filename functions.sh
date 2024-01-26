@@ -4,7 +4,6 @@
 shopt -s nocasematch
 set +e
 
-INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 HOSTNAME=""
 TRUSTED_USER=""
 
@@ -163,11 +162,13 @@ EOF
 	fi
 
 	# Not strictly 'hardware' but caps lock doesn't deserve to live
-	cd /usr/share/kbd/keymaps/i386/qwerty
-	gunzip us.map.gz
-	echo "keycode 58 = Control" | tee -a us.map
-	gzip us.map
-	cd $INSTALL_DIR
+	MAPFILE="/usr/share/kbd/keymaps/i386/qwerty/us.map"
+	FIXMAPS="keycode  58 = Control"
+	if ! zcat $MAPFILE | grep $FIXMAPS; then
+		gunzip "$MAPFILE.gz"
+		echo $FIXMAPS | tee -a $MAPFILE
+		gzip $MAPFILE
+	fi
 
 	# install and allow reconfiguration of linux if needed
 	xbps-install -y $packages
@@ -236,10 +237,10 @@ EOF
 		# force, really
 		fc-cache -f -r
 	fi
+	xbps-install -y $packages
 	# ensure bitmap fonts not available
 	ln -svf /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/
 	xbps-reconfigure -f fontconfig
-	xbps-install -y $packages
 }
 
 _install_applications() {

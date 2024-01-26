@@ -122,6 +122,19 @@ _configure_os() {
 	echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' | tee /etc/sudoers.d/wheel
 	# void doesn't generate a machine-id
 	hostname | md5sum | cut -d ' ' -f 1 | tee /etc/machine-id
+
+	# Not a fan of the caps lock key
+	MAPFILE="/usr/share/kbd/keymaps/i386/qwerty/us.map"
+	FIXMAPS="keycode  58 = Control"
+	if ! zcat $MAPFILE | grep "$FIXMAPS"; then
+		gunzip "$MAPFILE.gz"
+		echo "$FIXMAPS" | tee -a $MAPFILE
+		gzip $MAPFILE
+		# in case this was a chroot install
+		if ! grep -e "^KEYMAP=\"us\"" /etc/rc.conf; then
+			echo "KEYMAP=\"us\"" | tee -a /etc/rc.conf
+		fi
+	fi
 }
 
 _configure_hardware() {
@@ -161,19 +174,6 @@ EOF
 		echo "options hid_apple fnmode=2" | tee /etc/modprobe.d/00-keyboardfix.conf
 	fi
 
-	# Not strictly 'hardware' but caps lock doesn't deserve to live
-	MAPFILE="/usr/share/kbd/keymaps/i386/qwerty/us.map"
-	FIXMAPS="keycode  58 = Control"
-	if ! zcat $MAPFILE | grep "$FIXMAPS"; then
-		gunzip "$MAPFILE.gz"
-		echo "$FIXMAPS" | tee -a $MAPFILE
-		gzip $MAPFILE
-		# in case this was a chroot install
-		if ! grep -e "^KEYMAP=\"us\"" /etc/rc.conf; then
-			echo "KEYMAP=\"us\"" | tee -a /etc/rc.conf
-		fi
-	fi
-
 	# install and allow reconfiguration of linux if needed
 	xbps-install -y $packages
 	# finally update everything; likely that initramfs will be regenerated for a newer linux
@@ -207,8 +207,9 @@ _install_desktop_support() {
 _install_fonts() {
 	local packages=""
 	packages+=" font-adobe-source-code-pro font-adobe-source-sans-pro-v2 font-adobe-source-serif-pro \
-			dejavu-fonts-ttf fonts-droid-ttf noto-fonts-emoji noto-fonts-ttf "
-	# I prefer Roboto Mono. Current nvim config demands a patched Nerd Font
+			cantarell-fonts font-crosextra-carlito-ttf dejavu-fonts-ttf fonts-droid-ttf \
+            noto-fonts-emoji noto-fonts-ttf ttf-opensans fonts-roboto-ttf xorg-fonts "
+	# I prefer Roboto Mono, which Void doesn't carry. Current nvim config demands a patched Nerd Font
 	if ! [ -f /usr/share/fonts/TTF/RobotoMonoNerdFont-Regular.ttf ]; then
 		ZIPFILE=$(mktemp)
 		wget "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/RobotoMono.zip" -O $ZIPFILE

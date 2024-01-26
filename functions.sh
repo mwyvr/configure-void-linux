@@ -164,7 +164,7 @@ EOF
 	# Not strictly 'hardware' but caps lock doesn't deserve to live
 	MAPFILE="/usr/share/kbd/keymaps/i386/qwerty/us.map"
 	FIXMAPS="keycode  58 = Control"
-	if ! zcat $MAPFILE | grep $FIXMAPS; then
+	if ! zcat $MAPFILE | grep "$FIXMAPS"; then
 		gunzip "$MAPFILE.gz"
 		echo "$FIXMAPS" | tee -a $MAPFILE
 		gzip $MAPFILE

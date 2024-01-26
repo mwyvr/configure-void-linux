@@ -37,6 +37,11 @@ configuration() {
 	# https://docs.voidlinux.org/config/index.html
 	# Firmware already done
 
+	# logging
+	xbps-install -y socklog-void
+	ln -sv /etc/sv/socklog-unix /var/service
+	ln -sv /etc/sv/nanoklogd /var/service
+
 	# Cron -https://docs.voidlinux.org/config/cron.html
 	xbps-install -y snooze
 	# TODO - implement fstrim weekly if not on ZFS
@@ -312,6 +317,10 @@ setup_trusted_user() {
 		getent group bluetooth >/dev/null
 		if [ $? -eq 0 ]; then
 			groups+=",bluetooth"
+		fi
+		getent group socklog >/dev/null
+		if [ $? -eq 0 ]; then
+			groups+=",socklog"
 		fi
 		# script uses elogind but in case seatd replaces it one day..
 		getent group _seatd >/dev/null

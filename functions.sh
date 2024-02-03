@@ -133,6 +133,7 @@ configuration() {
 		# being a server, add terminfo for the two terminals I use, and tmux
 		packages+=" alacritty-terminfo foot-terminfo tmux "
 	fi
+	xbps-install -u $packages
 }
 
 _configure_os() {

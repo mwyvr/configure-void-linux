@@ -130,7 +130,7 @@ configuration() {
 		fi
 		# server doesn't need wifi
 		rm -f /var/service/wpa_supplicant
-		# if is a server, add terminfo for the two terminals I use, and tmux
+		# being a server, add terminfo for the two terminals I use, and tmux
 		packages+=" alacritty-terminfo foot-terminfo tmux "
 	fi
 }
@@ -209,7 +209,7 @@ _install_desktop_support() {
 		# to build dwm
 		packages+=" libXinerama libXinerama-devel "
 		# and convenience tools for .xinitrc
-		packages+=" xinput setxkbmap xss-lock slock xset feh dunst "
+		packages+=" xinput setxkbmap xss-lock slock xset feh dunst picom "
 	fi
 	if [ ! -z "$DO_WAYLAND" ]; then
 		packages+=" foot wbg wlroots wayland wl-clipboard wlr-randr xorg-server-xwayland fuzzel wlsunset "

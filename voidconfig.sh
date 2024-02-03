@@ -62,7 +62,9 @@ main() {
 		exit
 	fi
 	initial_update
-	configure_graphics
+	if [ ! -z "$DO_DESKTOP" ]; then
+		configure_graphics
+	fi
 	configuration
 	# run last as it tests for groups that may be created during package install
 	setup_trusted_user

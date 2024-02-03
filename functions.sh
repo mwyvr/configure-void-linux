@@ -300,9 +300,6 @@ configure_graphics() {
 	echo -e "\n# Graphics Setup #"
 	echo -e "\nThis script installs graphics drivers to support XOrg and Wayland."
 
-	# common to all graphics systems
-	packages+=" mesa-dri vulkan-loader "
-
 	echo -e "\nDetecting graphics cards:\n"
 
 	AMDGPU="$(lspci | grep -i 'vga.*amd')"
@@ -311,6 +308,8 @@ configure_graphics() {
 	if [ ! -z "$AMDGPU" ]; then
 		echo "- $AMDGPU"
 		if ask "Add driver for this card?" Y; then
+			# common to all graphics systems
+			packages+=" mesa-dri vulkan-loader "
 			packages+=" linux-firmware-amd mesa-vulkan-radeon mesa-vaapi mesa-vdpau "
 			if [ ! -z "$DO_XORG" ]; then
 				packages+=" xf86-video-amdgpu "
@@ -320,6 +319,8 @@ configure_graphics() {
 	if [ ! -z "$INTELGPU" ]; then
 		echo "- $INTELGPU"
 		if ask "Add driver for this card?" Y; then
+			# common to all graphics systems
+			packages+=" mesa-dri vulkan-loader "
 			packages+=" linux-firmware-intel intel-video-accel mesa-vulkan-intel "
 			if [ ! -z "$DO_XORG" ]; then
 				packages+=" xf86-video-intel "
@@ -329,6 +330,8 @@ configure_graphics() {
 	if [ ! -z "$NVIDIAGPU" ]; then
 		echo "- $NVIDIAGPU"
 		if ask "Add driver for this card? Warning: NVIDIA drivers problematic with Wayland" N; then
+			# common to all graphics systems
+			packages+=" mesa-dri vulkan-loader "
 			packages+=" nvidia "
 		fi
 		# we blacklist nouveau anyway because until kernel 6.7 there's no support

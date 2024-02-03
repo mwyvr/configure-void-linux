@@ -151,7 +151,7 @@ _configure_os() {
 		gzip $MAPFILE
 		# in case this was a chroot install
 		if ! grep -e "^KEYMAP=\"us\"" /etc/rc.conf; then
-			echo "KEYMAP=\"us\"" | tee -a /etc/rc.conf
+			echo "KEYMAP=us" | tee -a /etc/rc.conf
 		fi
 	fi
 }

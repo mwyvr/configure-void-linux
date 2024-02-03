@@ -20,15 +20,24 @@ DO_LIBVIRT=""
 
 initial_update() {
 	echo -e "\n# Updating existing system packages #"
+	# set fastly mirrors
+	# Enable non-free for Intel and other drivers, and ensure we have tools for the configuration
+	cat <<EOF >/etc/xbps.d/00-repository-main.conf
+repository=https://repo-fastly.voidlinux.org/current
+repository=https://repo-fastly.voidlinux.org/current/nonfree
+EOF
 	# update xbps
 	xbps-install -Suy xbps
-	# Enable non-free for Intel and other drivers, and ensure we have tools for the configuration
-	xbps-install -y void-repo-nonfree xtools wget curl unzip
+	# add a few tools for the install and xtools for convenience always
+	xbps-install -y xtools wget curl unzip
 }
 
 # functions in this file that start with an underscore i.e. "_configure_os" are
 # called from within configuration()
 configuration() {
+	# Convention: directly install and enable packages that are services. The
+	# rest are appended to "packages" and installed at the end of each
+	# function.
 	local packages=""
 	_configure_os
 	_configure_hardware
@@ -43,8 +52,13 @@ configuration() {
 
 	# Cron -https://docs.voidlinux.org/config/cron.html
 	xbps-install -y snooze
-	# TODO - implement fstrim weekly if not on ZFS
+	echo "TODO - implement fstrim weekly if not on ZFS"
+	ln -svf /etc/sv/snooze-daily /var/service
 	ln -svf /etc/sv/snooze-weekly /var/service
+
+	# contribute usage info to Void Linux project
+	xbps-install -y PopCorn
+	ln -sv /etc/sv/popcorn /var/service
 
 	# Power Management - https://docs.voidlinux.org/config/power-management.html
 	# all machines will run dbus and elogind; if acpid integration with elogind
@@ -60,12 +74,13 @@ configuration() {
 	fi
 
 	# Network is done last, see below
+
 	# Seat Management satisfied with dbus and elogind
-	# Graphical Session
 
 	if [ ! -z "$DO_DESKTOP" ]; then
 		# Graphical Session
 		_configure_graphics
+
 		# XOrg, Wayland
 		_install_desktop_support
 		_install_fonts
@@ -108,12 +123,15 @@ configuration() {
 		ln -svf /etc/sv/NetworkManager /var/service
 		rm -f /var/service/dhcpcd
 	else
+		# it's a server
 		# advertise hostname to upstream dhcpd service
 		if ! grep -Fxq "hostname" /etc/dhcpcd.conf; then
 			echo "hostname" | tee -a /etc/dhcpcd.conf
 		fi
 		# server doesn't need wifi
 		rm -f /var/service/wpa_supplicant
+		# if is a server, add terminfo for the two terminals I use, and tmux
+		packages+=" alacritty-terminfo foot-terminfo tmux "
 	fi
 }
 
@@ -183,18 +201,28 @@ EOF
 _install_desktop_support() {
 	local packages=""
 
+	# text based display manager for all; enable after
+	packages+=" emptty "
 	if [ ! -z "$DO_XORG" ]; then
-		packages+=" xorg-minimal xf86-input-evdev libinput xinput xinit dwm st dmenu "
+		# dwm on XOrg, dwl on Wayland. Notice a theme?
+		packages+=" xorg-minimal xf86-input-evdev libinput xinit dwm st dmenu alacritty "
+		# to build dwm
+		packages+=" libXinerama libXinerama-devel "
+		# and convenience tools for .xinitrc
+		packages+=" xinput setxkbmap xss-lock slock xset feh dunst "
 	fi
 	if [ ! -z "$DO_WAYLAND" ]; then
-		packages+=" foot alacritty wlroots wayland wl-clipboard wlr-randr xorg-server-xwayland fuzzel"
-		# having to build a lot of components from source still
+		packages+=" foot wbg wlroots wayland wl-clipboard wlr-randr xorg-server-xwayland fuzzel wlsunset "
+		# dwl not in Void packages as of Jan 2024
+		# having to build a lot of components from source still (dwl, somebar)
 		packages+=" wayland-devel wlroots-devel wayland-protocols "
 		packages+=" libinput libinput-devel meson cairo cairo-devel pango pango-devel  "
 	fi
 	# common to both
 	packages+=" gtk+3 xdg-dbus-proxy xdg-user-dirs xdg-user-dirs-gtk xdg-utils "
 	packages+=" xdg-desktop-portal xdg-desktop-portal-gtk "
+	# control brightness on laptops
+	packages+=" brillo "
 	# gui things for occasional use
 	packages+=" nautilus gnome-disk-utility evince "
 
@@ -246,8 +274,8 @@ EOF
 		fc-cache -f -r
 	fi
 	xbps-install -y $packages
-	# ensure bitmap fonts not available
 	ln -svf /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/
+	ln -svf /usr/share/fontconfig/conf.avail/10-hinting-slight.conf /etc/fonts/conf.d/
 	xbps-reconfigure -f fontconfig
 }
 
